@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>Ajanabi Dost — Prototype</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        height: 100%;
+        height: -webkit-fill-available;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #000;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        min-height: -webkit-fill-available;
+        overflow: hidden;
+        overscroll-behavior: none;
+        background: #000;
+        position: fixed;
+        inset: 0;
+      }
+
+      .embed-root {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        display: block;
+        background: #000;
+      }
+
+      .embed-frame {
+        display: block;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        vertical-align: top;
+        background: #000;
+        touch-action: manipulation;
+      }
+
+      /* Mobile: only the prototype — full bleed, no outer “page” frame */
+      @media (max-width: 900px) {
+        html {
+          height: -webkit-fill-available;
+        }
+
+        body {
+          width: 100vw;
+          height: 100%;
+          min-height: 100svh;
+          min-height: -webkit-fill-available;
+        }
+
+        .embed-root {
+          height: 100%;
+          min-height: 100svh;
+          min-height: -webkit-fill-available;
+        }
+
+        .embed-frame {
+          width: 100vw;
+          max-width: 100%;
+          height: 100%;
+          min-height: 100svh;
+          min-height: -webkit-fill-available;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="embed-root">
+      <iframe
+        class="embed-frame"
+        title="Figma prototype"
+        src="https://www.figma.com/embed?embed_host=share&amp;url=https%3A%2F%2Fwww.figma.com%2Fproto%2FzeN1qB3bvHccELvelk9CiT%3Fnode-id%3D0-1&amp;hide-ui=1"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </body>
+</html>
