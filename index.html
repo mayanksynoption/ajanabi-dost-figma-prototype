@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -20,11 +20,20 @@
         box-sizing: border-box;
       }
 
+      :root {
+        /* Fallback when JS has not run yet */
+        --app-h: 100dvh;
+        --app-w: 100vw;
+        /* Crop Figma embed top chrome on phones (px) */
+        --mobile-top-crop: 46px;
+      }
+
       html {
-        height: 100%;
-        height: -webkit-fill-available;
         margin: 0;
         padding: 0;
+        width: 100%;
+        height: var(--app-h);
+        max-height: var(--app-h);
         overflow: hidden;
         background: #000;
         -webkit-text-size-adjust: 100%;
@@ -33,65 +42,63 @@
       body {
         margin: 0;
         padding: 0;
-        width: 100%;
-        height: 100%;
-        min-height: 100%;
-        min-height: -webkit-fill-available;
+        width: var(--app-w, 100%);
+        max-width: 100%;
+        height: var(--app-h);
+        max-height: var(--app-h);
         overflow: hidden;
         overscroll-behavior: none;
         background: #000;
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
 
       .embed-root {
-        position: absolute;
-        inset: 0;
         width: 100%;
         height: 100%;
         margin: 0;
-        padding: 0;
-        display: block;
+        padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+          env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+        display: flex;
+        flex-direction: column;
         background: #000;
       }
 
       .embed-frame {
-        display: block;
+        flex: 1 1 auto;
+        min-height: 0;
         width: 100%;
-        height: 100%;
         margin: 0;
         padding: 0;
         border: 0;
-        vertical-align: top;
+        display: block;
         background: #000;
         touch-action: manipulation;
       }
 
-      /* Mobile: only the prototype — full bleed, no outer “page” frame */
+      /* Mobile: crop ~60px embed header via negative top margin + clip */
       @media (max-width: 900px) {
-        html {
-          height: -webkit-fill-available;
+        :root {
+          --app-w: 100%;
         }
 
         body {
-          width: 100vw;
-          height: 100%;
-          min-height: 100svh;
-          min-height: -webkit-fill-available;
+          width: 100%;
         }
 
         .embed-root {
-          height: 100%;
-          min-height: 100svh;
-          min-height: -webkit-fill-available;
+          overflow: hidden;
         }
 
         .embed-frame {
-          width: 100vw;
-          max-width: 100%;
-          height: 100%;
-          min-height: 100svh;
-          min-height: -webkit-fill-available;
+          margin-top: calc(-1 * var(--mobile-top-crop));
+          flex: 1 1 auto;
+          min-height: 0;
+          height: calc(100% + var(--mobile-top-crop));
+          min-height: calc(100% + var(--mobile-top-crop));
         }
       }
     </style>
@@ -105,5 +112,48 @@
         allowfullscreen
       ></iframe>
     </div>
+    <script>
+      (function () {
+        function readViewportSize() {
+          var vv = window.visualViewport;
+          if (vv) {
+            return { w: vv.width, h: vv.height };
+          }
+          return { w: window.innerWidth, h: window.innerHeight };
+        }
+
+        function applyViewportSize() {
+          var s = readViewportSize();
+          var root = document.documentElement;
+          root.style.setProperty("--app-h", s.h + "px");
+          root.style.setProperty("--app-w", s.w + "px");
+        }
+
+        function scheduleApply() {
+          applyViewportSize();
+          window.requestAnimationFrame(applyViewportSize);
+        }
+
+        applyViewportSize();
+        window.addEventListener("resize", scheduleApply, { passive: true });
+        window.addEventListener("orientationchange", function () {
+          window.setTimeout(scheduleApply, 120);
+          window.setTimeout(scheduleApply, 350);
+        });
+
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", scheduleApply, {
+            passive: true,
+          });
+          window.visualViewport.addEventListener("scroll", scheduleApply, {
+            passive: true,
+          });
+        }
+
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) scheduleApply();
+        });
+      })();
+    </script>
   </body>
 </html>
