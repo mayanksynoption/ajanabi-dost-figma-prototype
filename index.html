@@ -26,6 +26,8 @@
         --app-w: 100vw;
         /* Crop Figma embed top chrome on phones (px) */
         --mobile-top-crop: 46px;
+        /* Set by JS when bottom safe-area ~0 (hardware / legacy nav bar) */
+        --hardware-bottom-gap: 0px;
       }
 
       html {
@@ -79,6 +81,51 @@
         touch-action: manipulation;
       }
 
+      .page-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin: 0;
+        padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+          env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+        background: #000;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+      }
+
+      .page-loader.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .page-loader__spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.12);
+        border-top-color: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        animation: page-loader-spin 0.65s linear infinite;
+      }
+
+      @keyframes page-loader-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .page-loader__label {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: rgba(255, 255, 255, 0.55);
+      }
+
       /* Mobile: crop ~60px embed header via negative top margin + clip */
       @media (max-width: 900px) {
         :root {
@@ -95,10 +142,15 @@
 
         .embed-frame {
           margin-top: calc(-1 * var(--mobile-top-crop));
+          margin-bottom: calc(-1 * var(--hardware-bottom-gap));
           flex: 1 1 auto;
           min-height: 0;
-          height: calc(100% + var(--mobile-top-crop));
-          min-height: calc(100% + var(--mobile-top-crop));
+          height: calc(
+            100% + var(--mobile-top-crop) + var(--hardware-bottom-gap)
+          );
+          min-height: calc(
+            100% + var(--mobile-top-crop) + var(--hardware-bottom-gap)
+          );
         }
       }
     </style>
@@ -111,6 +163,16 @@
         src="https://www.figma.com/embed?embed_host=share&amp;url=https%3A%2F%2Fwww.figma.com%2Fproto%2FzeN1qB3bvHccELvelk9CiT%3Fnode-id%3D0-1&amp;hide-ui=1"
         allowfullscreen
       ></iframe>
+    </div>
+    <div
+      class="page-loader"
+      id="page-loader"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div class="page-loader__spinner" aria-hidden="true"></div>
+      <span class="page-loader__label">Loading prototype…</span>
     </div>
     <script>
       (function () {
@@ -129,12 +191,35 @@
           root.style.setProperty("--app-w", s.w + "px");
         }
 
+        /** Bottom env(safe-area) ~0 → hardware / on-screen nav; nudge iframe up 30px */
+        function applyHardwareBottomGap() {
+          var root = document.documentElement;
+          var probe = document.createElement("div");
+          probe.setAttribute(
+            "style",
+            "position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom, 0px)"
+          );
+          document.body.appendChild(probe);
+          var safeBottom =
+            parseFloat(window.getComputedStyle(probe).paddingBottom) || 0;
+          document.body.removeChild(probe);
+
+          var narrow = window.matchMedia("(max-width: 900px)").matches;
+          var gap = narrow && safeBottom < 1 ? "30px" : "0px";
+          root.style.setProperty("--hardware-bottom-gap", gap);
+        }
+
         function scheduleApply() {
           applyViewportSize();
-          window.requestAnimationFrame(applyViewportSize);
+          applyHardwareBottomGap();
+          window.requestAnimationFrame(function () {
+            applyViewportSize();
+            applyHardwareBottomGap();
+          });
         }
 
         applyViewportSize();
+        applyHardwareBottomGap();
         window.addEventListener("resize", scheduleApply, { passive: true });
         window.addEventListener("orientationchange", function () {
           window.setTimeout(scheduleApply, 120);
@@ -153,6 +238,33 @@
         document.addEventListener("visibilitychange", function () {
           if (!document.hidden) scheduleApply();
         });
+
+        (function initIframeLoader() {
+          var loader = document.getElementById("page-loader");
+          var iframe = document.querySelector(".embed-frame");
+          if (!loader || !iframe) return;
+
+          var done = false;
+          var shownAt = performance.now();
+          var minVisibleMs = 320;
+
+          function hideLoader() {
+            if (done) return;
+            done = true;
+            var wait = Math.max(
+              0,
+              minVisibleMs - (performance.now() - shownAt)
+            );
+            window.setTimeout(function () {
+              loader.classList.add("is-hidden");
+              loader.setAttribute("aria-busy", "false");
+              loader.setAttribute("aria-hidden", "true");
+            }, wait);
+          }
+
+          iframe.addEventListener("load", hideLoader);
+          window.setTimeout(hideLoader, 25000);
+        })();
       })();
     </script>
   </body>
